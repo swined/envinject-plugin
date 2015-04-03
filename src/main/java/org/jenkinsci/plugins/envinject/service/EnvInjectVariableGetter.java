@@ -1,5 +1,6 @@
 package org.jenkinsci.plugins.envinject.service;
 
+import com.google.common.collect.ImmutableList;
 import hudson.EnvVars;
 import hudson.Util;
 import hudson.matrix.MatrixRun;
@@ -12,11 +13,10 @@ import org.jenkinsci.plugins.envinject.EnvInjectJobProperty;
 import org.jenkinsci.plugins.envinject.EnvInjectJobPropertyInfo;
 import org.jenkinsci.plugins.envinject.EnvInjectPluginAction;
 
+import javax.lang.model.element.Modifier;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
+import java.lang.reflect.Field;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -137,10 +137,30 @@ public class EnvInjectVariableGetter {
         return null;
     }
 
+    private static List<Environment> getEnvironmentList(AbstractBuild build, EnvInjectLogger logger) {
+        try {
+            Field field = AbstractBuild.class.getDeclaredField("buildEnvironments");
+            field.setAccessible(true);
+            return (List<Environment>) field.get(build);
+        } catch (Throwable e) {
+            logger.error(e.getClass().getSimpleName() + ": " + e.getMessage());
+            return new ArrayList<Environment>();
+        }
+    }
+
+    private static List<Environment> getEnvironments(AbstractBuild build, EnvInjectLogger logger) {
+        List<Environment> buildEnvironments = getEnvironmentList(build, logger);
+        Executor e = Executor.currentExecutor();
+        if (e != null && e.getCurrentExecutable() == build)
+            return buildEnvironments;
+        else
+            return ImmutableList.copyOf(buildEnvironments);
+    }
+
     public Map<String, String> getEnvVarsPreviousSteps(AbstractBuild build, EnvInjectLogger logger) throws IOException, InterruptedException, EnvInjectException {
         Map<String, String> result = new HashMap<String, String>();
 
-        List<Environment> environmentList = build.getEnvironments();
+        List<Environment> environmentList = getEnvironments(build, logger);
         if (environmentList != null) {
             for (Environment e : environmentList) {
                 if (e != null) {

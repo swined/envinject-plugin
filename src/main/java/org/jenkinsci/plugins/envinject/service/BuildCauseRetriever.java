@@ -78,8 +78,8 @@ public class BuildCauseRetriever {
             return "SCMTRIGGER";
         } else if (TimerTrigger.TimerTriggerCause.class.isInstance(cause)) {
             return "TIMERTRIGGER";
-        } else if (Cause.UserIdCause.class.isInstance(cause)) {
-            return "MANUALTRIGGER";
+//        } else if (Cause.UserIdCause.class.isInstance(cause)) {
+//            return "MANUALTRIGGER";
         } else if (Cause.UserCause.class.isInstance(cause)) {
             return "MANUALTRIGGER";
         } else if (Cause.UpstreamCause.class.isInstance(cause)) {
