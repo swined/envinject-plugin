@@ -3,10 +3,12 @@ package org.jenkinsci.plugins.envinject.service;
 import hudson.model.AbstractBuild;
 import hudson.model.Cause;
 import hudson.model.CauseAction;
+import hudson.model.Environment;
 import hudson.triggers.SCMTrigger;
 import hudson.triggers.TimerTrigger;
 import org.apache.commons.lang.StringUtils;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -42,13 +44,23 @@ public class BuildCauseRetriever {
         return env;
     }
 
+    private static List<Cause> getUpstreamCauses(Cause.UpstreamCause cause) {
+        try {
+            Field field = Cause.UpstreamCause.class.getDeclaredField("upstreamCauses");
+            field.setAccessible(true);
+            return (List<Cause>) field.get(cause);
+        } catch (Throwable e) {
+            throw new RuntimeException(e.getMessage(), e);
+        }
+    }
+    
     private static void insertRootCauseNames(Set<String> causeNames, Cause cause, int depth) {
         if (cause instanceof Cause.UpstreamCause) {
             if (depth == MAX_UPSTREAM_DEPTH) {
                 causeNames.add("DEEPLYNESTEDCAUSES");
             } else {
                 Cause.UpstreamCause c = (Cause.UpstreamCause)cause;
-                List<Cause> upstreamCauses = c.getUpstreamCauses();
+                List<Cause> upstreamCauses = getUpstreamCauses(c);
                 for (Cause upstreamCause : upstreamCauses)
                     insertRootCauseNames(causeNames, upstreamCause, depth + 1);
             }
